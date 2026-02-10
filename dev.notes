@@ -1,0 +1,6 @@
+for .weekdays=>{
+    Monday=1,
+    ----
+    Saturday=6,
+    Sunday=7
+}
