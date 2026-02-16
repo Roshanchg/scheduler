@@ -74,7 +74,6 @@ class ItemCard extends StatelessWidget {
                       children: [
                         Icon(Icons.circle_outlined),
                         Expanded(child: Text("The Next Task", maxLines: 1)),
-                        getIconForTaskType(null),
                         Text("24:00"),
                       ],
                     ),

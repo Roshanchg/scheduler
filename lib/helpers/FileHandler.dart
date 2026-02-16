@@ -150,6 +150,29 @@ class FileHandler {
     return tasks;
   }
 
+  static Future<void> removeTask(String filename, Task task) async {
+    List<Task> taskList = await readAllTasks(filename);
+    List<Map<String, dynamic>> newTaskList = [];
+    for (Task t in taskList) {
+      if (t.time == task.time) {
+        continue;
+      }
+      newTaskList.add(t.toMap());
+    }
+
+    File taskFile = File(filename);
+    File backupFile = await loadFileToBackup(taskFile);
+    try {
+      await taskFile.writeAsString(
+        jsonEncode(newTaskList),
+        mode: FileMode.write,
+      );
+    } catch (_) {
+      await loadBackupFileAsTasksFile(backupFile, filename);
+    }
+    clearBackupDirectory();
+  }
+
   static Future<void> clearTempDirectory() async {
     final tempDir = await getTempDirectory();
     await clearDirectory(tempDir);
@@ -177,5 +200,14 @@ class FileHandler {
         log("Failed to clear Dir ${dir.path}: $e");
       }
     }
+  }
+
+  static Future<bool> doesTimeCollide(Task task, String filename) async {
+    List<Task> taskList = await readAllTasks(filename);
+    if (taskList.isEmpty) return false;
+    for (Task t in taskList) {
+      if (task.time == t.time) return true;
+    }
+    return false;
   }
 }

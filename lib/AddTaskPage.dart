@@ -364,7 +364,7 @@ class _addTaskPageState extends State<AddTaskPage> {
         ),
 
         const Divider(height: 1),
-
+        // BODY CONTENT
         Expanded(
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -373,13 +373,35 @@ class _addTaskPageState extends State<AddTaskPage> {
               : ListView.builder(
                   itemCount: taskList.length,
                   itemBuilder: (context, index) {
-                    final task = taskList![index];
-                    return ListTile(
-                      title: Text(
-                        task.name,
-                        style: TextStyle(color: Colors.white),
+                    final task = taskList[index];
+                    return Padding(
+                      padding: EdgeInsetsGeometry.all(20),
+                      child: Row(
+                        spacing: 10,
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(task.name),
+                            ),
+                          ),
+                          Icon(getIconDataForTaskType(task.type)),
+                          Text(parseTimeToPrettyString(task.time)),
+                          IconButton(onPressed: () {}, icon: Icon(Icons.edit)),
+                          IconButton(
+                            onPressed: () {
+                              FileHandler.removeTask(
+                                curSchedule!.taskFile,
+                                task,
+                              );
+                              setState(() {});
+                              loadSchedules();
+                              setState(() {});
+                            },
+                            icon: Icon(Icons.delete),
+                          ),
+                        ],
                       ),
-                      subtitle: Text("HELLO"),
                     );
                   },
                 ),

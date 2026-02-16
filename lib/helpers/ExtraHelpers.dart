@@ -76,39 +76,43 @@ int mapRepeatTypeToWeekDay(REPEATTYPES? repeatType) {
   }
 }
 
-Icon getIconForTaskType(TASKTYPES? taskType) {
+IconData getIconDataForTaskType(TASKTYPES? taskType) {
   if (taskType == null) {
-    return Icon(Icons.category);
+    return (Icons.category);
   }
 
   switch (taskType) {
     case TASKTYPES.FUN:
       {
-        return Icon(Icons.celebration);
+        return (Icons.celebration);
       }
     case TASKTYPES.EAT:
       {
-        return Icon(Icons.restaurant);
+        return (Icons.restaurant);
       }
     case TASKTYPES.EXERCISE:
       {
-        return Icon(Icons.directions_run);
+        return (Icons.directions_run);
       }
     case TASKTYPES.SLEEP:
       {
-        return Icon(Icons.bed);
+        return (Icons.bed);
       }
     case TASKTYPES.STUDY:
       {
-        return Icon(Icons.book);
+        return (Icons.book);
       }
     case TASKTYPES.WAKE_UP:
       {
-        return Icon(Icons.alarm_on);
+        return (Icons.alarm_on);
       }
     default:
       {
-        return Icon(Icons.category);
+        return (Icons.category);
       }
   }
+}
+
+String parseTimeToPrettyString(TimeOfDay time) {
+  return '${time.hour.toString().padLeft(2, "0")}:${time.minute.toString().padLeft(2, "0")}';
 }

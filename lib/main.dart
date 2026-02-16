@@ -9,8 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FileHandler.init_dirs();
   await DatabaseHandler.instance.init_db();
-  await DatabaseHandler.instance.remove_db();
-  await FileHandler.clearTasksDirectory();
   runApp(MainApp());
 }
 
