@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:scheduler/AddTaskPage.dart';
 import 'package:scheduler/HomePage.dart';
+import 'package:scheduler/helpers/DatabaseHandler.dart';
 import 'package:scheduler/helpers/FileHandler.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FileHandler.init_dirs();
+  await DatabaseHandler.instance.init_db();
+  await DatabaseHandler.instance.remove_db();
+  await FileHandler.clearTasksDirectory();
   runApp(MainApp());
 }
 

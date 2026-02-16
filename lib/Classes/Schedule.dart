@@ -1,4 +1,5 @@
 import 'package:scheduler/Enums/RepeatTypes.dart';
+import 'package:scheduler/helpers/ExtraHelpers.dart';
 
 class Schedule {
   final int? id;
@@ -35,7 +36,7 @@ class Schedule {
       'date': date.millisecondsSinceEpoch,
       'repeat': repeat ? 1 : 0,
       'task_file': taskFile,
-      'repeat_type': repeatType,
+      'repeat_type': repeatType.toString(),
     };
   }
 
@@ -45,9 +46,10 @@ class Schedule {
       date: DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
       repeat: (map['repeat'] as int) == 1,
       taskFile: map['task_file'] as String,
-      repeatType: map['repeat_type'] as REPEATTYPES,
+      repeatType: mapToRepeatType(map['repeat_type'] as String),
     );
   }
+
   @override
   String toString() {
     return 'Schedule{id:$id,date:$date,repeat:$repeat,task_file:$taskFile,repeat_type:$repeatType}';

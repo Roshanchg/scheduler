@@ -44,7 +44,17 @@ REPEATTYPES? mapWeekDayToRepeatType(int weekday) {
   return null;
 }
 
-int mapRepeatTypeToWeekDay(REPEATTYPES repeatType) {
+REPEATTYPES? mapToRepeatType(String repStr) {
+  for (REPEATTYPES e in REPEATTYPES.values) {
+    if (e.toString() == repStr) {
+      return e;
+    }
+  }
+  return null;
+}
+
+int mapRepeatTypeToWeekDay(REPEATTYPES? repeatType) {
+  if (repeatType == null) return -1;
   switch (repeatType) {
     case REPEATTYPES.Monday:
       return 1;

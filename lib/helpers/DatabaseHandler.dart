@@ -31,7 +31,7 @@ class DatabaseHandler {
       version: 1,
       onCreate: (db, version) async {
         await db.execute(
-          "CREATE TABLE $tableSchedules ($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colDate INTEGER UNIQUE NOT NULL,$colRepeat INTEGER NOT NULL CHECK ($colRepeat IN (0,1)), $colTaskFile TEXT NOT NULL, $colTaskRepeatType TEXT  )",
+          "CREATE TABLE $tableSchedules ($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colDate INTEGER NOT NULL,$colRepeat INTEGER NOT NULL CHECK ($colRepeat IN (0,1)), $colTaskFile TEXT NOT NULL, $colTaskRepeatType TEXT  )",
         );
         await db.execute(
           "CREATE INDEX idx_schedules_date ON $tableSchedules ($colDate)",
@@ -81,7 +81,7 @@ class DatabaseHandler {
     final Database db = await DatabaseHandler.instance.database;
     final maps = await db.query(
       tableSchedules,
-      where: 'date >= ? AND date < ?',
+      where: 'date >= ? AND date < ? AND repeat = 0 AND repeat_type = null',
       whereArgs: [startMs, endMs],
       orderBy: 'date ASC',
     );
@@ -104,10 +104,14 @@ class DatabaseHandler {
     return map.isNotEmpty;
   }
 
-  Future<Schedule?> getCertainWeekDaySchedule(int weekday) async {
-    Database db = await DatabaseHandler.instance.database; 
-    REPEATTYPES? weekDayRepeatToday = mapWeekDayToRepeatType(weekday);
+  Future<Schedule?> getCertainWeekDaySchedule(
+    REPEATTYPES? weekDayRepeatToday,
+  ) async {
     if (weekDayRepeatToday == null) return null;
+    if (weekDayRepeatToday == REPEATTYPES.EveryDay)
+      return await getFullRepeatSchedule();
+    Database db = await DatabaseHandler.instance.database;
+
     final maps = await db.query(
       tableSchedules,
       where: 'repeat_type = ?',
@@ -145,7 +149,9 @@ class DatabaseHandler {
     if (todaySchedule != null) {
       return todaySchedule;
     } else {
-      todaySchedule = await getCertainWeekDaySchedule(DateTime.now().weekday);
+      todaySchedule = await getCertainWeekDaySchedule(
+        mapWeekDayToRepeatType(DateTime.now().weekday),
+      );
       if (todaySchedule != null) {
         return todaySchedule;
       } else {
@@ -153,5 +159,10 @@ class DatabaseHandler {
         return todaySchedule;
       }
     }
+  }
+
+  Future<void> remove_db() async {
+    final dbPath = join(await getDatabasesPath(), "schedule_db.db");
+    deleteDatabase(dbPath);
   }
 }

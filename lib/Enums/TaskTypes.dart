@@ -29,7 +29,7 @@ extension TaskTypesX on TASKTYPES {
         }
       case TASKTYPES.OTHERS:
         {
-          return "Eat";
+          return "Others";
         }
     }
   }

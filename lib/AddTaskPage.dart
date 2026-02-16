@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:scheduler/Classes/Schedule.dart';
 import 'package:scheduler/Classes/Task.dart';
@@ -8,6 +9,7 @@ import 'package:scheduler/Enums/TaskTypes.dart';
 import 'package:scheduler/helpers/DatabaseHandler.dart';
 import 'package:scheduler/helpers/ExtraHelpers.dart';
 import 'package:scheduler/helpers/FileHandler.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:uuid/uuid.dart';
 
 class AddTaskPage extends StatefulWidget {
@@ -31,12 +33,20 @@ class _addTaskPageState extends State<AddTaskPage> {
   bool selIsAarm = false;
 
   Future<void> loadSchedules() async {
-    if (selectedDate == null) return;
-
     setState(() {
       isLoading = true;
     });
-    curSchedule = await DatabaseHandler.instance.getTodaySchedule();
+    if (selRepeatType != null) {
+      curSchedule = await DatabaseHandler.instance.getCertainWeekDaySchedule(
+        selRepeatType,
+      );
+    } else {
+      if (selectedDate == null) return;
+
+      curSchedule = await DatabaseHandler.instance.getCertainScheduleFromTime(
+        selectedDate!,
+      );
+    }
     setState(() {
       isLoading = false;
     });
@@ -84,9 +94,16 @@ class _addTaskPageState extends State<AddTaskPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Task"),
-                    TextField(),
+                    TextField(
+                      onChanged: (value) {
+                        insertedName = value;
+                      },
+                    ),
                     const Text("Task Description"),
-                    TextField(maxLines: null),
+                    TextField(
+                      maxLines: null,
+                      onChanged: (value) => {insertedDescription = value},
+                    ),
                     Row(
                       children: [
                         const Text("Task Type"),
@@ -147,11 +164,19 @@ class _addTaskPageState extends State<AddTaskPage> {
                       children: [
                         IconButton(
                           onPressed: () async {
+                            if (selTime == null) {
+                              final messenger = ScaffoldMessenger.of(context);
+                              messenger.clearSnackBars();
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please Select a time'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
                             if (curSchedule == null) {
-                              if (selTime == null) {
-                                return;
-                              }
-                              await FileHandler.insertNewTask(
+                              File taskFile = await FileHandler.insertNewTask(
                                 Task(
                                   time: selTime!,
                                   name: insertedName,
@@ -161,7 +186,23 @@ class _addTaskPageState extends State<AddTaskPage> {
                                 ),
                                 null,
                               );
-                              
+                              Schedule newSchedule = await DatabaseHandler
+                                  .instance
+                                  .insertSchedule(
+                                    Schedule(
+                                      date: (selectedDate == null)
+                                          ? DateTime.now()
+                                          : selectedDate!,
+                                      repeat:
+                                          (selRepeatType ==
+                                          REPEATTYPES.EveryDay),
+                                      taskFile: taskFile.path,
+                                      repeatType: selRepeatType,
+                                    ),
+                                  );
+                              log(taskFile.path);
+                              Navigator.pop(context);
+                              loadSchedules();
                             } else {
                               String filename = curSchedule!.taskFile;
                               await FileHandler.insertNewTask(
@@ -175,11 +216,17 @@ class _addTaskPageState extends State<AddTaskPage> {
                                 filename,
                               );
                             }
+                            selTime = null;
                           },
                           icon: Icon(Icons.check),
                         ),
                         IconButton(
-                          onPressed: () => {Navigator.pop(context)},
+                          onPressed: () {
+                            selTime = null;
+                            insertedName = "";
+                            insertedDescription = "";
+                            Navigator.pop(context);
+                          },
                           icon: Icon(Icons.cancel_outlined),
                         ),
                       ],
@@ -244,8 +291,7 @@ class _addTaskPageState extends State<AddTaskPage> {
                         selectedDate = tempSelDate;
                         selRepeatType = null;
                       });
-                      curSchedule = await DatabaseHandler.instance
-                          .getCertainScheduleFromTime(selectedDate!);
+                      await loadSchedules();
 
                       setState(() {});
                     }
@@ -296,15 +342,7 @@ class _addTaskPageState extends State<AddTaskPage> {
                         selRepeatType = tempSelRepeatType;
                         selectedDate = null;
                       });
-                      if (tempSelRepeatType == REPEATTYPES.EveryDay) {
-                        curSchedule = await DatabaseHandler.instance
-                            .getFullRepeatSchedule();
-                      } else {
-                        curSchedule = await DatabaseHandler.instance
-                            .getCertainWeekDaySchedule(
-                              mapRepeatTypeToWeekDay(selRepeatType!),
-                            );
-                      }
+                      await loadSchedules();
                       setState(() {});
                     }
                   },
@@ -329,7 +367,10 @@ class _addTaskPageState extends State<AddTaskPage> {
                   itemBuilder: (context, index) {
                     final schedule = curSchedule!;
                     return ListTile(
-                      title: Text(schedule.taskFile),
+                      title: Text(
+                        schedule.taskFile,
+                        style: TextStyle(color: Colors.white),
+                      ),
                       subtitle: Text(
                         TimeOfDay.fromDateTime(schedule.date).format(context),
                       ),
