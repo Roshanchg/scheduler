@@ -25,6 +25,7 @@ class _addTaskPageState extends State<AddTaskPage> {
   Schedule? curSchedule;
   REPEATTYPES? selRepeatType;
   bool isLoading = true;
+  List<Task> taskList = [];
 
   // Dialogue box input options
   String insertedName = "";
@@ -40,13 +41,22 @@ class _addTaskPageState extends State<AddTaskPage> {
       curSchedule = await DatabaseHandler.instance.getCertainWeekDaySchedule(
         selRepeatType,
       );
+      log("loading task from Week $selRepeatType");
     } else {
       if (selectedDate == null) return;
 
       curSchedule = await DatabaseHandler.instance.getCertainScheduleFromTime(
         selectedDate!,
       );
+      log("loading task from date: $selectedDate");
     }
+    if (curSchedule != null) {
+      taskList = await FileHandler.readAllTasks(curSchedule!.taskFile);
+      if (taskList.length > 0) {
+        log("Task lisst : ${taskList.first.toString()}");
+      }
+    }
+    log("Loaded schedule: $curSchedule, task length: ${taskList.length}");
     setState(() {
       isLoading = false;
     });
@@ -165,6 +175,7 @@ class _addTaskPageState extends State<AddTaskPage> {
                         IconButton(
                           onPressed: () async {
                             if (selTime == null) {
+                              log("Sel time null: ${selTime.toString()}");
                               final messenger = ScaffoldMessenger.of(context);
                               messenger.clearSnackBars();
                               messenger.showSnackBar(
@@ -186,23 +197,18 @@ class _addTaskPageState extends State<AddTaskPage> {
                                 ),
                                 null,
                               );
-                              Schedule newSchedule = await DatabaseHandler
-                                  .instance
-                                  .insertSchedule(
-                                    Schedule(
-                                      date: (selectedDate == null)
-                                          ? DateTime.now()
-                                          : selectedDate!,
-                                      repeat:
-                                          (selRepeatType ==
-                                          REPEATTYPES.EveryDay),
-                                      taskFile: taskFile.path,
-                                      repeatType: selRepeatType,
-                                    ),
-                                  );
+                              await DatabaseHandler.instance.insertSchedule(
+                                Schedule(
+                                  date: (selectedDate == null)
+                                      ? DateTime.now()
+                                      : selectedDate!,
+                                  repeat:
+                                      (selRepeatType == REPEATTYPES.EveryDay),
+                                  taskFile: taskFile.path,
+                                  repeatType: selRepeatType,
+                                ),
+                              );
                               log(taskFile.path);
-                              Navigator.pop(context);
-                              loadSchedules();
                             } else {
                               String filename = curSchedule!.taskFile;
                               await FileHandler.insertNewTask(
@@ -216,6 +222,8 @@ class _addTaskPageState extends State<AddTaskPage> {
                                 filename,
                               );
                             }
+                            Navigator.pop(context);
+                            loadSchedules();
                             selTime = null;
                           },
                           icon: Icon(Icons.check),
@@ -360,23 +368,18 @@ class _addTaskPageState extends State<AddTaskPage> {
         Expanded(
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
-              : (curSchedule == null)
+              : (curSchedule == null || taskList.isEmpty)
               ? const Center(child: Text("No Tasks Found "))
               : ListView.builder(
-                  itemCount: 10,
+                  itemCount: taskList.length,
                   itemBuilder: (context, index) {
-                    final schedule = curSchedule!;
+                    final task = taskList![index];
                     return ListTile(
                       title: Text(
-                        schedule.taskFile,
+                        task.name,
                         style: TextStyle(color: Colors.white),
                       ),
-                      subtitle: Text(
-                        TimeOfDay.fromDateTime(schedule.date).format(context),
-                      ),
-                      leading: Icon(
-                        schedule.repeat ? Icons.repeat : Icons.task_alt,
-                      ),
+                      subtitle: Text("HELLO"),
                     );
                   },
                 ),

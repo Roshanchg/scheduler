@@ -125,7 +125,7 @@ class FileHandler {
 
   static Future<List<Task>> readAllTasks(String taskFileName) async {
     final tasksDir = await getTasksDirectory();
-    final taskFile = File("${tasksDir.path}/$taskFileName");
+    final taskFile = File(taskFileName);
     final List<Task> tasks = [];
 
     if (await taskFile.exists()) {
