@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:scheduler/Enums/TaskTypes.dart';
 
 class Task {
-  final int id;
   final String name;
   final String desc;
   final TASKTYPES type;
   final bool isAlarm;
   final TimeOfDay time;
   const Task({
-    required this.id,
     required this.time,
     required this.name,
     required this.desc,
@@ -18,7 +16,6 @@ class Task {
   });
   Map<String, String> toMap() {
     return {
-      'id': id.toString(),
       'name': name,
       'desc': desc,
       'type': type.name,
@@ -39,7 +36,6 @@ class Task {
 
   factory Task.fromMap(Map<String, String> map) {
     return Task(
-      id: int.parse(map['id']!),
       name: map['name']!,
       desc: map['desc']!,
       type: TASKTYPES.values.byName(map['type']!),

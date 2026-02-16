@@ -50,41 +50,77 @@ class FileHandler {
 
   static Future<File> loadFileToBackup(File toBeBackedFile) async {
     final backupDir = await getBackupDirectory();
+    await clearBackupDirectory();
     const String backupFileName = 'task_backup.json';
     File backupFile = File("${backupDir.path}/$backupFileName");
     return toBeBackedFile.copy(backupFile.path);
   }
 
-  static Future<File> loadBackupFileAsNewTasksFile(File? backupFile) async {
+  static Future<File> loadBackupFileAsTasksFile(
+    File? backupFile,
+    String taskFileName,
+  ) async {
     final backupDir = await getBackupDirectory();
     final tasksDir = await getTasksDirectory();
     if (backupFile == null) {
       const String backupFileName = 'task_backup.json';
       backupFile = File("${backupDir.path}/$backupFileName");
     }
-    File taskFile = File("${tasksDir.path}/task_${Uuid().v4()}.json");
+    File taskFile = File("${tasksDir.path}/$taskFileName");
     return backupFile.copy(taskFile.path);
   }
 
   static Future<File> loadCurrentTasksFileToTemp(File taskFile) async {
     final tempDir = await getTempDirectory();
-    const String tempFileName = 'task_temp.json';
+    const String tempFileName = 'task_add.json';
     final File tempFile = File("${tempDir.path}/$tempFileName");
     return taskFile.copy(tempFile.path);
   }
 
-  Future<File> insertTaskTemp(Task task) async {
-    final tasksDir = await getTempDirectory();
-    const String fileName = 'task_add.json';
-    final file = File('${tasksDir.path}/$fileName');
+  static Future<void> insertNewTask(Task task, String? filename) async {
+    final tasksDir = await getTasksDirectory();
+    if (filename == null) {
+      final File taskFile = File("${tasksDir.path}/task_${Uuid().v4()}.json");
+      clearTempDirectory();
+      final File tempFile = await insertTaskTemp(task);
+      await copyTempTaskToMain(tempFile);
+      await clearTempDirectory();
+    } else {
+      final File taskFile = File("${tasksDir.path}/$filename");
+      final File backupFile = await loadFileToBackup(taskFile);
+      final File tempFile = await loadCurrentTasksFileToTemp(taskFile);
+      await insertTaskTemp(task);
+      try {
+        await copyTempTaskToMain(tempFile);
+      } catch (e) {
+        log("Error: $e");
+        await loadBackupFileAsTasksFile(backupFile, filename);
+        await clearTempDirectory();
+      }
+    }
+  }
 
-    final jsonContent = jsonEncode(task.toMap());
-    await file.writeAsString(jsonContent);
-    log('Task ${task.name} added to $fileName');
+  static Future<File> insertTaskTemp(Task task) async {
+    final tasksDir = await getTempDirectory();
+    final file = File('${tasksDir.path}/task_add.json');
+
+    List<Map<String, dynamic>> currentTasks = [];
+    if (await file.exists()) {
+      try {
+        final content = await file.readAsString();
+        if (content.trim().isNotEmpty) {
+          currentTasks = List<Map<String, dynamic>>.from(jsonDecode(content));
+        }
+      } catch (_) {}
+    }
+
+    currentTasks.add(task.toMap());
+    await file.writeAsString(jsonEncode(currentTasks));
+    log('Task ${task.name} added to task_add.json');
     return file;
   }
 
-  Future<File> copyTempTaskToMain(File tempFile) async {
+  static Future<File> copyTempTaskToMain(File tempFile) async {
     final tasksDir = await getTasksDirectory();
     final uuidFile = File('${tasksDir.path}/task_${const Uuid().v4()}.json');
     return tempFile.copy(uuidFile.path);

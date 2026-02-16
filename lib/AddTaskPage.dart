@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:scheduler/Classes/Schedule.dart';
+import 'package:scheduler/Classes/Task.dart';
 import 'package:scheduler/Enums/RepeatTypes.dart';
 import 'package:scheduler/Enums/TaskTypes.dart';
 import 'package:scheduler/helpers/DatabaseHandler.dart';
 import 'package:scheduler/helpers/ExtraHelpers.dart';
+import 'package:scheduler/helpers/FileHandler.dart';
+import 'package:uuid/uuid.dart';
 
 class AddTaskPage extends StatefulWidget {
   const AddTaskPage({super.key});
@@ -16,12 +19,16 @@ class AddTaskPage extends StatefulWidget {
 class _addTaskPageState extends State<AddTaskPage> {
   GlobalKey key = GlobalKey();
 
-  TimeOfDay? selTime;
   DateTime? selectedDate = DateTime.now();
   Schedule? curSchedule;
   REPEATTYPES? selRepeatType;
-
   bool isLoading = true;
+
+  // Dialogue box input options
+  String insertedName = "";
+  String insertedDescription = "";
+  TimeOfDay? selTime;
+  bool selIsAarm = false;
 
   Future<void> loadSchedules() async {
     if (selectedDate == null) return;
@@ -44,7 +51,7 @@ class _addTaskPageState extends State<AddTaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add A Schedule")),
+      appBar: AppBar(title: const Text("Add A Schedule")),
       body: ScheduleTabBody(context),
       floatingActionButton: TextButton(
         style: TextButton.styleFrom(
@@ -53,7 +60,7 @@ class _addTaskPageState extends State<AddTaskPage> {
           minimumSize: Size(100, 50),
         ),
         onPressed: () => _showTaskAddDrawer(context),
-        child: Text("Add Task"),
+        child: const Text("Add Task"),
       ),
     );
   }
@@ -66,7 +73,8 @@ class _addTaskPageState extends State<AddTaskPage> {
         return StatefulBuilder(
           builder: (context, setLocalState) {
             return AlertDialog(
-              title: Text("Add Task"),
+              scrollable: true,
+              title: const Text("Add Task"),
               content: Container(
                 width: 800,
                 padding: EdgeInsets.all(12),
@@ -75,13 +83,13 @@ class _addTaskPageState extends State<AddTaskPage> {
                   spacing: 10,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Task"),
+                    const Text("Task"),
                     TextField(),
-                    Text("Task Description"),
+                    const Text("Task Description"),
                     TextField(maxLines: null),
                     Row(
                       children: [
-                        Text("Task Type"),
+                        const Text("Task Type"),
                         SizedBox(width: 20),
                         DropdownButton<TASKTYPES>(
                           dropdownColor: Color(0xff181818),
@@ -101,10 +109,20 @@ class _addTaskPageState extends State<AddTaskPage> {
                         ),
                       ],
                     ),
-
                     Row(
                       children: [
-                        Text("Select Time: "),
+                        const Text("Alarm? "),
+                        Checkbox(
+                          value: selIsAarm,
+                          onChanged: (value) => {
+                            setLocalState(() => selIsAarm = value!),
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text("Select Time: "),
                         TextButton(
                           onPressed: () async {
                             final tempSelTime = await showTimePicker(
@@ -128,7 +146,36 @@ class _addTaskPageState extends State<AddTaskPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         IconButton(
-                          onPressed: () => {log(selTime!.toString())},
+                          onPressed: () async {
+                            if (curSchedule == null) {
+                              if (selTime == null) {
+                                return;
+                              }
+                              await FileHandler.insertNewTask(
+                                Task(
+                                  time: selTime!,
+                                  name: insertedName,
+                                  desc: insertedDescription,
+                                  type: selectedType,
+                                  isAlarm: selIsAarm,
+                                ),
+                                null,
+                              );
+                              
+                            } else {
+                              String filename = curSchedule!.taskFile;
+                              await FileHandler.insertNewTask(
+                                Task(
+                                  time: selTime!,
+                                  name: insertedName,
+                                  desc: insertedDescription,
+                                  type: selectedType,
+                                  isAlarm: selIsAarm,
+                                ),
+                                filename,
+                              );
+                            }
+                          },
                           icon: Icon(Icons.check),
                         ),
                         IconButton(

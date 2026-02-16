@@ -4,3 +4,15 @@ for .weekdays=>{
     Saturday=6,
     Sunday=7
 }
+
+tasks saving standards {
+    task => tasksdir
+}
+tasks edit standards {
+    tasksdir => backup
+    newtask => temp
+    temp => tasksdir
+    if(failed){
+        backup=>tasksdir
+    }
+}

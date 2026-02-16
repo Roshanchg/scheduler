@@ -105,7 +105,7 @@ class DatabaseHandler {
   }
 
   Future<Schedule?> getCertainWeekDaySchedule(int weekday) async {
-    Database db = await DatabaseHandler.instance.database;
+    Database db = await DatabaseHandler.instance.database; 
     REPEATTYPES? weekDayRepeatToday = mapWeekDayToRepeatType(weekday);
     if (weekDayRepeatToday == null) return null;
     final maps = await db.query(

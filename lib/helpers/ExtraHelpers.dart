@@ -62,7 +62,7 @@ int mapRepeatTypeToWeekDay(REPEATTYPES repeatType) {
       return 7;
     case REPEATTYPES.EveryDay:
       log("everyday repeat type was sent to be maapped :ERROR ");
-      return 1;
+      return 0;
   }
 }
 
