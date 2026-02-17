@@ -78,8 +78,8 @@ class DatabaseHandler {
     final maps = await db.query(
       tableSchedules,
       where:
-          '$colDate >= ? AND $colDate < ? AND $colRepeat = 0 AND $colTaskRepeatType = null',
-      whereArgs: [startMs, endMs],
+          "$colDate >= ? AND $colDate < ? AND $colRepeat = 0 AND ($colTaskRepeatType IS NULL OR $colTaskRepeatType = 'null' OR $colTaskRepeatType = ?)",
+      whereArgs: [startMs, endMs, REPEATTYPES.EveryDay.toString()],
       orderBy: '$colDate ASC',
     );
     if (maps.isEmpty) return null;

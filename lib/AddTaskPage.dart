@@ -46,7 +46,7 @@ class _addTaskPageState extends State<AddTaskPage> {
       if (selectedDate == null) return;
 
       curSchedule = await DatabaseHandler.instance.getCertainScheduleFromTime(
-        selectedDate!,
+        selectedDate ?? DateTime.now(),
       );
       log("loading task from date: $selectedDate");
     }
@@ -403,6 +403,13 @@ class _addTaskPageState extends State<AddTaskPage> {
                                 isLoading = true;
                               });
                               loadSchedules();
+                              taskList.remove(task);
+                              if (taskList.isEmpty) {
+                                await DatabaseHandler.instance.deleteSchedule(
+                                  curSchedule!,
+                                );
+                                curSchedule = null;
+                              }
                               setState(() {
                                 isLoading = false;
                               });

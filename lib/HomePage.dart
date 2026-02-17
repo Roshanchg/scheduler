@@ -217,7 +217,9 @@ class ItemCard extends StatelessWidget {
                   Row(
                     spacing: 20,
                     children: [
-                      Icon(Icons.circle_outlined),
+                      (task.isAlarm)
+                          ? const Icon(Icons.alarm_on_sharp)
+                          : const Icon(Icons.alarm_off_sharp),
                       (task.name.isEmpty)
                           ? const Text(
                               "No Name Task",
