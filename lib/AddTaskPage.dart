@@ -382,7 +382,12 @@ class _addTaskPageState extends State<AddTaskPage> {
                           Expanded(
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
-                              child: Text(task.name),
+                              child: (task.name.isEmpty)
+                                  ? const Text(
+                                      "NO NAME",
+                                      style: TextStyle(color: Colors.grey),
+                                    )
+                                  : Text(task.name),
                             ),
                           ),
                           Icon(getIconDataForTaskType(task.type)),
