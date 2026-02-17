@@ -5,10 +5,12 @@ import 'package:scheduler/helpers/DatabaseHandler.dart';
 import 'package:scheduler/helpers/FileHandler.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FileHandler.init_dirs();
-  await DatabaseHandler.instance.init_db();
+  await DatabaseHandler.instance.clearExpiredRows();
   runApp(MainApp());
 }
 
@@ -21,6 +23,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Scheduler",
       navigatorKey: GlobalKey<NavigatorState>(),
+      navigatorObservers: [routeObserver],
       theme: ThemeData(
         scaffoldBackgroundColor: Color(0xff1c1c1c),
         textTheme: Typography.whiteCupertino,

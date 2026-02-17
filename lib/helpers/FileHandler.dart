@@ -124,7 +124,6 @@ class FileHandler {
   }
 
   static Future<List<Task>> readAllTasks(String taskFileName) async {
-    final tasksDir = await getTasksDirectory();
     final taskFile = File(taskFileName);
     final List<Task> tasks = [];
 
@@ -209,5 +208,12 @@ class FileHandler {
       if (task.time == t.time) return true;
     }
     return false;
+  }
+
+  static Future<void> removeTaskFile(String filename) async {
+    File file = File(filename);
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 }

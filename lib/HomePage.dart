@@ -2,11 +2,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:scheduler/AddTaskPage.dart';
+import 'package:scheduler/Classes/Schedule.dart';
+import 'package:scheduler/Classes/Task.dart';
 import 'package:scheduler/Enums/TaskTypes.dart';
+import 'package:scheduler/helpers/DatabaseHandler.dart';
 import 'package:scheduler/helpers/ExtraHelpers.dart';
+import 'package:scheduler/helpers/FileHandler.dart';
+import 'package:scheduler/main.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,28 +38,81 @@ class CardsContainer extends StatefulWidget {
   State<StatefulWidget> createState() => _cardsContainerState();
 }
 
-class _cardsContainerState extends State<CardsContainer> {
+class _cardsContainerState extends State<CardsContainer> with RouteAware {
+  Schedule? activeSchedule;
+  List<Task> taskList = [];
+
+  bool isLoading = true;
+
+  void loadSchedule() async {
+    setState(() {
+      isLoading = true;
+    });
+    activeSchedule = await DatabaseHandler.instance.getTodaySchedule();
+    if (activeSchedule != null) {
+      taskList = await FileHandler.readAllTasks(activeSchedule!.taskFile);
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  void didPopNext() {
+    loadSchedule();
+    super.didPopNext();
+  }
+
   @override
   void initState() {
     super.initState();
+    loadSchedule();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.zero,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: 8,
-        itemBuilder: (context, index) => ItemCard(index: index),
-      ),
-    );
+    return isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : (activeSchedule == null || taskList.isEmpty)
+        ? const Center(child: Text("No Tasks Scheduled for Today"))
+        : Container(
+            padding: EdgeInsets.zero,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: taskList.length,
+              itemBuilder: (context, index) =>
+                  ItemCard(index: index, task: taskList[index]),
+            ),
+          );
   }
 }
 
 class ItemCard extends StatelessWidget {
   final int index;
-  const ItemCard({super.key, required this.index});
+  final Task task;
+  const ItemCard({super.key, required this.index, required this.task});
+
+  String _parseTimeToPrettyString(TimeOfDay time) {
+    int hour = time.hour;
+    int minute = time.minute;
+    String hourStr = (hour.toString().length < 2) ? "0$hour" : hour.toString();
+    String minuteStr = (minute.toString().length < 2)
+        ? "0$minute"
+        : minute.toString();
+    return "$hourStr : $minuteStr";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,37 +123,60 @@ class ItemCard extends StatelessWidget {
             height: 300,
             child: Card(
               child: Padding(
-                padding: EdgeInsetsGeometry.all(20),
+                padding: EdgeInsets.all(20),
                 child: Column(
                   spacing: 32,
                   children: [
                     Row(
                       textDirection: TextDirection.ltr,
-                      spacing: 16,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.circle_outlined),
-                        Expanded(child: Text("The Next Task", maxLines: 1)),
-                        Text("24:00"),
+                        Row(
+                          spacing: 20,
+                          children: [
+                            Icon(Icons.circle_outlined),
+                            Text(task.name, maxLines: 1),
+                          ],
+                        ),
+                        Row(
+                          spacing: 20,
+                          children: [
+                            Icon(getIconDataForTaskType(task.type)),
+                            Text(
+                              _parseTimeToPrettyString(task.time),
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         spacing: 24,
                         children: [
-                          SizedBox(
-                            height: 100,
-                            child: Text(
-                              "This is a description for the task added by user ...fffaufbiuwbaugbgu",
+                          Align(
+                            alignment: AlignmentGeometry.topLeft,
+                            child: SizedBox(
+                              height: 100,
+                              child: SingleChildScrollView(
+                                child: Text(task.desc),
+                              ),
                             ),
                           ),
-                          Align(
-                            alignment: AlignmentGeometry.bottomRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              child: Text("show more"),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(
+                                (task.isAlarm)
+                                    ? Icons.alarm_on_sharp
+                                    : Icons.alarm_off_sharp,
+                              ),
+                              TextButton(
+                                onPressed: () {},
+                                child: Text("show more"),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -116,14 +198,24 @@ class ItemCard extends StatelessWidget {
             color: Color(0xff1f1f1f),
 
             child: Padding(
-              padding: EdgeInsetsGeometry.all(20),
+              padding: EdgeInsets.all(20),
               child: Row(
-                spacing: 12,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.circle_outlined),
-                  Expanded(child: Text("Lesser Task")),
-                  Icon(Icons.school),
-                  Text("12:09"),
+                  Row(
+                    spacing: 20,
+                    children: [Icon(Icons.circle_outlined), Text(task.name)],
+                  ),
+                  Row(
+                    spacing: 20,
+                    children: [
+                      Icon(getIconDataForTaskType(task.type)),
+                      Text(
+                        _parseTimeToPrettyString(task.time),
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

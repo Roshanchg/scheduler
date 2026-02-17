@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import 'package:scheduler/Classes/Schedule.dart';
 import 'package:scheduler/Enums/RepeatTypes.dart';
 import 'package:scheduler/helpers/ExtraHelpers.dart';
+import 'package:scheduler/helpers/FileHandler.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHandler {
@@ -58,11 +59,6 @@ class DatabaseHandler {
     return scheduleMaps.map(Schedule.fromMap).toList();
   }
 
-  Future<void> deleteSchedule(int id) async {
-    final Database db = await DatabaseHandler.instance.database;
-    await db.delete(tableSchedules, where: '$colId = ?', whereArgs: [id]);
-  }
-
   Future<void> updateSchedule(int oldScheduleId, Schedule newSchedule) async {
     final Database db = await DatabaseHandler.instance.database;
     await db.update(
@@ -81,9 +77,10 @@ class DatabaseHandler {
     final Database db = await DatabaseHandler.instance.database;
     final maps = await db.query(
       tableSchedules,
-      where: 'date >= ? AND date < ? AND repeat = 0 AND repeat_type = null',
+      where:
+          '$colDate >= ? AND $colDate < ? AND $colRepeat = 0 AND $colTaskRepeatType = null',
       whereArgs: [startMs, endMs],
-      orderBy: 'date ASC',
+      orderBy: '$colDate ASC',
     );
     if (maps.isEmpty) return null;
     return maps.map(Schedule.fromMap).toList().first;
@@ -98,7 +95,7 @@ class DatabaseHandler {
     int time = dateTime.millisecondsSinceEpoch;
     final map = await db.query(
       tableSchedules,
-      where: 'date= ?',
+      where: '$colDate= ?',
       whereArgs: [time],
     );
     return map.isNotEmpty;
@@ -114,7 +111,7 @@ class DatabaseHandler {
 
     final maps = await db.query(
       tableSchedules,
-      where: 'repeat_type = ?',
+      where: '$colTaskRepeatType = ?',
       whereArgs: [weekDayRepeatToday.toString()],
     );
     if (maps.isNotEmpty && maps.length > 1) {
@@ -132,7 +129,7 @@ class DatabaseHandler {
     Database db = await DatabaseHandler.instance.database;
     final map = await db.query(
       tableSchedules,
-      where: 'repeat=?',
+      where: '$colRepeat=?',
       whereArgs: [1],
     );
     if (map.isNotEmpty) {
@@ -164,5 +161,50 @@ class DatabaseHandler {
   Future<void> remove_db() async {
     final dbPath = join(await getDatabasesPath(), "schedule_db.db");
     deleteDatabase(dbPath);
+  }
+
+  Future<void> clearExpiredRows() async {
+    final db = await DatabaseHandler.instance.database;
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    final startMs = start.millisecondsSinceEpoch;
+    final toBeRemovedMaps = await db.query(
+      tableSchedules,
+      where: "$colDate < ? AND $colRepeat = 0 AND $colTaskRepeatType = null",
+      whereArgs: [startMs],
+    );
+    if (toBeRemovedMaps.isEmpty) return;
+    toBeRemovedMaps.forEach((map) async {
+      final schedule = Schedule.fromMap(map);
+      await FileHandler.removeTaskFile(schedule.taskFile);
+      await db.delete(
+        tableSchedules,
+        where: "$colId = ?",
+        whereArgs: [schedule.id],
+      );
+    });
+  }
+
+  Future<void> deleteSchedule(Schedule schedule) async {
+    final db = await DatabaseHandler.instance.database;
+    await FileHandler.removeTaskFile(schedule.taskFile);
+    await db.delete(
+      tableSchedules,
+      where: "$colId=?",
+      whereArgs: [schedule.id],
+    );
+  }
+
+  Future<bool> doesCollideRepeat(
+    REPEATTYPES? repeatType,
+    bool fullRepeat,
+  ) async {
+    if (fullRepeat) {
+      return (await getFullRepeatSchedule() == null);
+    }
+    if (repeatType == null) {
+      return false;
+    }
+    return (await getCertainWeekDaySchedule(repeatType) == null);
   }
 }

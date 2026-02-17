@@ -389,14 +389,18 @@ class _addTaskPageState extends State<AddTaskPage> {
                           Text(parseTimeToPrettyString(task.time)),
                           IconButton(onPressed: () {}, icon: Icon(Icons.edit)),
                           IconButton(
-                            onPressed: () {
-                              FileHandler.removeTask(
+                            onPressed: () async {
+                              await FileHandler.removeTask(
                                 curSchedule!.taskFile,
                                 task,
                               );
-                              setState(() {});
+                              setState(() {
+                                isLoading = true;
+                              });
                               loadSchedules();
-                              setState(() {});
+                              setState(() {
+                                isLoading = false;
+                              });
                             },
                             icon: Icon(Icons.delete),
                           ),
