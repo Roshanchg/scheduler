@@ -104,7 +104,7 @@ IconData getIconDataForTaskType(TASKTYPES? taskType) {
       }
     case TASKTYPES.WAKE_UP:
       {
-        return (Icons.alarm_on);
+        return (Icons.access_alarms_sharp);
       }
     default:
       {

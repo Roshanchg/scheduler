@@ -51,7 +51,7 @@ class _addTaskPageState extends State<AddTaskPage> {
       log("loading task from date: $selectedDate");
     }
     if (curSchedule != null) {
-      taskList = await FileHandler.readAllTasks(curSchedule!.taskFile);
+      taskList = await FileHandler.getSortedTaskList(curSchedule!.taskFile);
       if (taskList.length > 0) {
         log("Task lisst : ${taskList.first.toString()}");
       }

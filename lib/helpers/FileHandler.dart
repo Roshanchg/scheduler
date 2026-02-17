@@ -216,4 +216,29 @@ class FileHandler {
       await file.delete();
     }
   }
+
+  static Future<List<Task>> getSortedTaskList(String filename) async {
+    List<Task> taskList = await readAllTasks(filename);
+    if (taskList.isEmpty) return [];
+    taskList.sort((a, b) {
+      int aMinutes = a.time.hour * 60 + a.time.minute;
+      int bMinutes = b.time.hour * 60 + b.time.minute;
+      return aMinutes.compareTo(bMinutes);
+    });
+
+    return taskList;
+  }
+
+  static Future<List<Task>> getNonExpiredTaskList(String filename) async {
+    List<Task> taskList = await FileHandler.getSortedTaskList(filename);
+    int taskMinutes = 0;
+    int currentMinute = (TimeOfDay.now().hour * 60) + TimeOfDay.now().minute;
+    List<Task> nonExpiredTaskList = [];
+
+    nonExpiredTaskList = taskList.where((task) {
+      taskMinutes = task.time.minute + (task.time.hour * 60);
+      return currentMinute <= taskMinutes;
+    }).toList();
+    return nonExpiredTaskList;
+  }
 }

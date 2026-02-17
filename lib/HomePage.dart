@@ -50,7 +50,9 @@ class _cardsContainerState extends State<CardsContainer> with RouteAware {
     });
     activeSchedule = await DatabaseHandler.instance.getTodaySchedule();
     if (activeSchedule != null) {
-      taskList = await FileHandler.readAllTasks(activeSchedule!.taskFile);
+      taskList = await FileHandler.getNonExpiredTaskList(
+        activeSchedule!.taskFile,
+      );
     }
     setState(() {
       isLoading = false;
@@ -135,7 +137,12 @@ class ItemCard extends StatelessWidget {
                           spacing: 20,
                           children: [
                             Icon(Icons.circle_outlined),
-                            Text(task.name, maxLines: 1),
+                            (task.name.isEmpty)
+                                ? const Text(
+                                    "No Name Task",
+                                    style: TextStyle(color: Colors.grey),
+                                  )
+                                : Text(task.name, maxLines: 1),
                           ],
                         ),
                         Row(
@@ -160,7 +167,12 @@ class ItemCard extends StatelessWidget {
                             child: SizedBox(
                               height: 100,
                               child: SingleChildScrollView(
-                                child: Text(task.desc),
+                                child: (task.desc.isEmpty)
+                                    ? const Text(
+                                        "No Description added .... ",
+                                        style: TextStyle(color: Colors.grey),
+                                      )
+                                    : Text(task.desc),
                               ),
                             ),
                           ),
@@ -204,7 +216,15 @@ class ItemCard extends StatelessWidget {
                 children: [
                   Row(
                     spacing: 20,
-                    children: [Icon(Icons.circle_outlined), Text(task.name)],
+                    children: [
+                      Icon(Icons.circle_outlined),
+                      (task.name.isEmpty)
+                          ? const Text(
+                              "No Name Task",
+                              style: TextStyle(color: Colors.grey),
+                            )
+                          : Text(task.name),
+                    ],
                   ),
                   Row(
                     spacing: 20,
