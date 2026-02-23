@@ -32,6 +32,12 @@ class _addTaskPageState extends State<AddTaskPage> {
   String insertedDescription = "";
   TimeOfDay? selTime;
   bool selIsAarm = false;
+  TASKTYPES selectedType = TASKTYPES.values.first;
+
+  // edit box input options
+  TASKTYPES? editSelectedType;
+  TimeOfDay? editSelTime;
+  bool? editIsAlarm;
 
   Future<void> loadSchedules() async {
     setState(() {
@@ -86,7 +92,6 @@ class _addTaskPageState extends State<AddTaskPage> {
   }
 
   void _showTaskAddDrawer(BuildContext context) {
-    TASKTYPES selectedType = TASKTYPES.values.first;
     showDialog(
       context: context,
       builder: (context) {
@@ -249,6 +254,142 @@ class _addTaskPageState extends State<AddTaskPage> {
     );
   }
 
+  // Edit Window
+  void _showEditTaskWindow(BuildContext context, Task task, String filename) {
+    editSelTime = task.time;
+    editSelectedType = task.type;
+    editIsAlarm = task.isAlarm;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: const Text(
+                "Edit task",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Container(
+                padding: EdgeInsets.all(14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 10,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          "Task: ",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(task.name),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          "Task Type: ",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 20),
+                        DropdownButton(
+                          dropdownColor: Color(0xff181818),
+                          value: editSelectedType,
+                          items: TASKTYPES.values.map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(type.label),
+                            );
+                          }).toList(),
+                          onChanged: (selected) {
+                            setLocalState(() {
+                              editSelectedType = selected;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text(
+                          "Alarm?: ",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Checkbox(
+                          value: editIsAlarm,
+                          onChanged: (sel) {
+                            setLocalState(() {});
+                            editIsAlarm = sel;
+                          },
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text(
+                          "Time: ",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(parseTimeToPrettyString(editSelTime!)),
+                        IconButton(
+                          onPressed: () async {
+                            TimeOfDay? temp;
+                            while (temp == null) {
+                              temp = await showTimePicker(
+                                context: context,
+                                initialTime: editSelTime!,
+                              );
+                            }
+                            setLocalState(() {
+                              editSelTime = temp;
+                            });
+                          },
+                          icon: Icon(Icons.timelapse, color: Colors.blue),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            Task newTask = Task(
+                              time: (editSelTime == null)
+                                  ? task.time
+                                  : editSelTime!,
+                              name: task.name,
+                              desc: task.desc,
+                              type: (editSelectedType == null)
+                                  ? task.type
+                                  : editSelectedType!,
+                              isAlarm: (editIsAlarm == null)
+                                  ? task.isAlarm
+                                  : editIsAlarm!,
+                            );
+                            await FileHandler.removeTask(filename, task);
+                            await FileHandler.insertNewTask(newTask, filename);
+                            Navigator.pop(context);
+                            loadSchedules();
+                          },
+                          icon: Icon(Icons.check),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          icon: Icon(Icons.cancel_outlined),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget ScheduleTabBody(BuildContext context) {
     return Column(
       children: [
@@ -379,6 +520,9 @@ class _addTaskPageState extends State<AddTaskPage> {
                       child: Row(
                         spacing: 10,
                         children: [
+                          (task.isAlarm)
+                              ? const Icon(Icons.alarm_on)
+                              : const Icon(Icons.alarm_off),
                           Expanded(
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -392,7 +536,20 @@ class _addTaskPageState extends State<AddTaskPage> {
                           ),
                           Icon(getIconDataForTaskType(task.type)),
                           Text(parseTimeToPrettyString(task.time)),
-                          IconButton(onPressed: () {}, icon: Icon(Icons.edit)),
+                          IconButton(
+                            onPressed: () {
+                              _showEditTaskWindow(
+                                context,
+                                task,
+                                curSchedule!.taskFile,
+                              );
+                              setState(() {
+                                taskList.remove(task);
+                              });
+                              setState(() {});
+                            },
+                            icon: Icon(Icons.edit),
+                          ),
                           IconButton(
                             onPressed: () async {
                               await FileHandler.removeTask(
